@@ -80,23 +80,23 @@ def add_new_book():
             if qty < 0:
                 print("The quantity cannot be a negative number. "
                       "Please try again.")
-                continue
+            break
             # Ask the user if they want to add the author's name and country
-            user_input = input(
-                "Would you like to add the author's details (y/n): "
-            ).lower()
-            if user_input == 'y':
-                author_name = input("Enter the name of the author: ")
-                country_name = input("Enter the country name: ").capitalize()
-                new_author_id = int(input("Enter the author ID: "))
-                if new_author_id <= 0:
-                    print("Author ID cannot be a zero or negative number."
-                          "Please try again!")
-                    continue
-                break
-            elif user_input == 'n':
-                print("Book added successfully!\n")
-                break
+            # user_input = input(
+            #     "Would you like to add the author's details (y/n): "
+            # ).lower()
+            # if user_input == 'y':
+            #     author_name = input("Enter the name of the author: ")
+            #     country_name = input("Enter the country name: ").capitalize()
+                # new_author_id = int(input("Enter the author ID: "))
+                # if new_author_id <= 0:
+                #     print("Author ID cannot be a zero or negative number."
+                #           "Please try again!")
+                #     continue
+            #   break
+            # elif user_input == 'n':
+            #     print("Book added successfully!\n")
+            #     break
     except Exception as e:
         # Roll back any changes if something goes wrong
         db.rollback()
@@ -112,10 +112,10 @@ def add_new_book():
     )
 
     # Add the new author details in the author database
-    cursor.execute(
-        '''INSERT OR IGNORE INTO author (id, name, country)
-        VALUES (?, ?, ?)''', (new_author_id, author_name, country_name)
-    )
+    # cursor.execute(
+    #     '''INSERT OR IGNORE INTO author (id, name, country)
+    #     VALUES (?, ?, ?)''', (author_id, author_name, country_name)
+    # )
 
     # Print the database in rows after insertion
     for row in cursor.execute('SELECT * FROM book'):
@@ -124,7 +124,12 @@ def add_new_book():
     # Commit the changes to the database
     db.commit()
 
-    return book_id, title, author_id, author_name, new_author_id, qty, country_name
+    return (
+        book_id,
+        title,
+        author_id,
+        qty,
+    )
 
 
 def update_book():
@@ -188,11 +193,12 @@ def update_book():
                 continue
 
             # Ask if the user wants to update the author's details
-            ask_user = input("Would younlike to update the author's details (y/n): ").lower()
+            ask_user = input(
+                "Would you like to update the author's details (y/n): "
+            ).lower()
             if ask_user == 'y':
                 new_author_name = input("Enter the new author name: ")
-                new_auth_country = input("Enter the new author ID: ")
-                continue
+                new_auth_country = input("Enter the Authour's country name: ")
 
             elif ask_user == 'n':
                 print('Update Completed!')
@@ -210,7 +216,6 @@ def update_book():
             (book_id,)
         )
         result = cursor.fetchone()
-        old_author_id = result[2]
 
         # Update the book and author table in the database
         cursor.execute(
@@ -221,10 +226,10 @@ def update_book():
         )
 
         cursor.execute(
-            '''UPDATE author
-                SET id = ?
+            '''UPDATE OR REPLACE author
+                SET id = ?, name = ?, country = ?
                 WHERE id = ?''',
-            (new_author_id, old_author_id)
+            (new_author_id, new_author_name, new_auth_country, new_author_id)
         )
 
         # Print the database in rows after updating
@@ -240,7 +245,14 @@ def update_book():
         # Commit the changes to the database
         db.commit()
 
-        return book_id, new_title, new_author_id, new_qty, new_author_name, new_auth_country
+        return (
+            book_id,
+            new_title,
+            new_author_id,
+            new_qty,
+            new_author_name,
+            new_auth_country
+        )
 
 
 def delete_book():
@@ -260,6 +272,7 @@ def delete_book():
                 (del_book_id,)
             )
             book = cursor.fetchone()
+            print(book)
             if book is None:
                 print("Book ID does not exist. Please try again.")
                 continue
@@ -376,7 +389,7 @@ def view_details_of_all_books():
     results = cursor.fetchall()
     for title, name, country in results:
         print(f"Title: {title}\nAuthor: {name}\nCountry: {country}")
-        print("-" * 15)
+        print("-" * 30)
 
 
 # Main Menu options
