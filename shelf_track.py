@@ -80,23 +80,14 @@ def add_new_book():
             if qty < 0:
                 print("The quantity cannot be a negative number. "
                       "Please try again.")
-            break
+                continue
+
             # Ask the user if they want to add the author's name and country
-            # user_input = input(
-            #     "Would you like to add the author's details (y/n): "
-            # ).lower()
-            # if user_input == 'y':
-            #     author_name = input("Enter the name of the author: ")
-            #     country_name = input("Enter the country name: ").capitalize()
-                # new_author_id = int(input("Enter the author ID: "))
-                # if new_author_id <= 0:
-                #     print("Author ID cannot be a zero or negative number."
-                #           "Please try again!")
-                #     continue
-            #   break
-            # elif user_input == 'n':
-            #     print("Book added successfully!\n")
-            #     break
+            # or use the author details that are already provided
+
+            author_name = input("Enter the name of the author: ")
+            country_name = input("Enter the country name: ").capitalize()
+            break
     except Exception as e:
         # Roll back any changes if something goes wrong
         db.rollback()
@@ -112,10 +103,10 @@ def add_new_book():
     )
 
     # Add the new author details in the author database
-    # cursor.execute(
-    #     '''INSERT OR IGNORE INTO author (id, name, country)
-    #     VALUES (?, ?, ?)''', (author_id, author_name, country_name)
-    # )
+    cursor.execute(
+         '''INSERT OR IGNORE INTO author (id, name, country)
+         VALUES (?, ?, ?)''', (author_id, author_name, country_name)
+    )
 
     # Print the database in rows after insertion
     for row in cursor.execute('SELECT * FROM book'):
@@ -189,20 +180,12 @@ def update_book():
             new_qty = int(input("Enter the new quantity of the book: "))
             if new_qty < 0:
                 print("The quantity cannot be a negative number. "
-                      "Please try again.")
+                    "Please try again.")
                 continue
 
-            # Ask if the user wants to update the author's details
-            ask_user = input(
-                "Would you like to update the author's details (y/n): "
-            ).lower()
-            if ask_user == 'y':
-                new_author_name = input("Enter the new author name: ")
-                new_auth_country = input("Enter the Authour's country name: ")
-
-            elif ask_user == 'n':
-                print('Update Completed!')
-                break
+            new_author_name = input("Enter the new author's name: ")
+            new_auth_country = input("Enter the new author's country: ")
+            break
 
         except ValueError:
             print("Invalid input. Please check your data types and try again.")
@@ -211,48 +194,48 @@ def update_book():
             db.rollback()
             raise e
 
-        cursor.execute(
-            '''SELECT * FROM book WHERE id = ?''',
-            (book_id,)
-        )
-        result = cursor.fetchone()
+    cursor.execute(
+        '''SELECT * FROM book WHERE id = ?''',
+        (book_id,)
+    )
+    result = cursor.fetchone()
 
-        # Update the book and author table in the database
-        cursor.execute(
-            '''UPDATE book
-               SET title = ?, authorID = ?, qty = ?
-               WHERE id = ?''',
-            (new_title, new_author_id, new_qty, book_id)
-        )
+    # Update the book and author table in the database
+    cursor.execute(
+        '''UPDATE book
+            SET title = ?, authorID = ?, qty = ?
+            WHERE id = ?''',
+        (new_title, new_author_id, new_qty, book_id)
+    )
 
-        cursor.execute(
-            '''UPDATE OR REPLACE author
-                SET id = ?, name = ?, country = ?
-                WHERE id = ?''',
-            (new_author_id, new_author_name, new_auth_country, new_author_id)
-        )
+    cursor.execute(
+        '''UPDATE OR REPLACE author
+            SET id = ?, name = ?, country = ?
+            WHERE id = ?''',
+        (new_author_id, new_author_name, new_auth_country, new_author_id)
+    )
 
-        # Print the database in rows after updating
-        for row in cursor.execute(
-            '''SELECT book.id, book.title, book.authorID, book.qty
-               FROM book
-               INNER JOIN author ON book.authorID = author.id
-               WHERE book.id = ?''',
-            (book_id,)
-        ):
-            print(row)
+    # Print the database in rows after updating
+    for row in cursor.execute(
+        '''SELECT book.id, book.title, book.authorID, book.qty
+            FROM book
+            INNER JOIN author ON book.authorID = author.id
+            WHERE book.id = ?''',
+        (book_id,)
+    ):
+        print(row)
 
-        # Commit the changes to the database
-        db.commit()
+    # Commit the changes to the database
+    db.commit()
 
-        return (
-            book_id,
-            new_title,
-            new_author_id,
-            new_qty,
-            new_author_name,
-            new_auth_country
-        )
+    return (
+        book_id,
+        new_title,
+        new_author_id,
+        new_qty,
+        new_author_name,
+        new_auth_country
+    )
 
 
 def delete_book():
@@ -421,6 +404,9 @@ while True:
     elif menu_input == '0':
         print("Quiting the program. Goodbye!")
         sys.exit()
+    else:
+        print("Invalid option. Please enter a number between 0 and 5.")
+        continue
 
     # except ValueError:
     #     print("Invalid input. Please enter a number between 0 and 5.")
