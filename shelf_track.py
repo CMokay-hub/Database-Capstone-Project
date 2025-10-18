@@ -59,35 +59,34 @@ def add_new_book():
 
             book_id = int(input("Enter the book ID: "))
             if book_id <= 0:
-                print("Book ID cannot be a negative number or zero. "
-                      "Please try again.")
+                print("Book ID cannot be a negative number or zero.")
+                print("Please try again.")
                 continue
+
             # Check if the book ID already exists in the database
             if book_id in [
                 row[0] for row in cursor.execute('SELECT id FROM book')
             ]:
                 print("Book ID already exists. Please try again.")
                 continue
+
             title = input("Enter the title of the book: ")
             author_id = int(input("Enter the author's ID: "))
             if author_id <= 0:
-                print(
-                    "The author's ID cannot be a negative number or zero. "
-                    "Please try again."
-                )
+                print("The author's ID cannot be a negative number "
+                      "or zero. Please try again.")
                 continue
+
             qty = int(input("Enter the quantity of the book: "))
             if qty < 0:
                 print("The quantity cannot be a negative number. "
                       "Please try again.")
                 continue
 
-            # Ask the user if they want to add the author's name and country
-            # or use the author details that are already provided
-
             author_name = input("Enter the name of the author: ")
             country_name = input("Enter the country name: ").capitalize()
             break
+
     except Exception as e:
         # Roll back any changes if something goes wrong
         db.rollback()
@@ -125,10 +124,11 @@ def add_new_book():
 
 def update_book():
     '''This function will allow the user to update a book into the database.
-    When the user selects option 2 (Update book), they should enter the
-    book ID they want to update, review the current author’s name and country,
-    provide new values for the author’s name and/or country, and
+    The user should enter the book ID they want to update,
+    review the current author's name and country,
+    provide new values for the author's name and/or country, and
     then save the updated information to the database.'''
+
     while True:
         try:
             book_id = int(
@@ -147,16 +147,12 @@ def update_book():
             if book is None:
                 print("Book ID does not exist. Please try again.")
                 continue
+            old_author_id = book[2]
 
             print(f"Book details found: {book}")
 
             # Retrieve information from the book table and author table
-            cursor.execute('''
-                SELECT book.title, author.name, author.country
-                FROM book
-                INNER JOIN author ON book.authorID = author.id
-                WHERE book.id = ?
-            ''', (book_id,))
+            find_book(book_id)
 
             result = cursor.fetchone()
             print(result)
@@ -174,19 +170,15 @@ def update_book():
             if new_author_id <= 0:
                 print(
                     "The author's ID cannot be a negative number or zero. "
-                    "Please try again."
-                )
-                continue
-            new_qty = int(input("Enter the new quantity of the book: "))
-            if new_qty < 0:
-                print("The quantity cannot be a negative number. "
                     "Please try again.")
-                continue
 
             new_author_name = input("Enter the new author's name: ")
             new_auth_country = input("Enter the new author's country: ")
-            break
-
+            new_qty = int(input("Enter the new quantity of the book: "))
+            if new_qty < 0:
+                print("The quantity cannot be a negative number. "
+                      "Please try again.")
+                continue
         except ValueError:
             print("Invalid input. Please check your data types and try again.")
         except Exception as e:
@@ -194,48 +186,57 @@ def update_book():
             db.rollback()
             raise e
 
-    cursor.execute(
-        '''SELECT * FROM book WHERE id = ?''',
-        (book_id,)
-    )
-    result = cursor.fetchone()
+        cursor.execute(
+            '''SELECT * FROM book WHERE id = ?''',
+            (book_id,)
+        )
+        result = cursor.fetchone()
 
-    # Update the book and author table in the database
-    cursor.execute(
-        '''UPDATE book
-            SET title = ?, authorID = ?, qty = ?
-            WHERE id = ?''',
-        (new_title, new_author_id, new_qty, book_id)
-    )
+        # Update the book and author table in the database
+        cursor.execute(
+            '''UPDATE book
+                SET title = ?, authorID = ?, qty = ?
+                WHERE id = ?''',
+            (new_title, new_author_id, new_qty, book_id)
+        )
 
-    cursor.execute(
-        '''UPDATE OR REPLACE author
-            SET id = ?, name = ?, country = ?
-            WHERE id = ?''',
-        (new_author_id, new_author_name, new_auth_country, new_author_id)
-    )
+        cursor.execute(
+            '''UPDATE OR REPLACE author
+                SET id = ?, name = ?, country = ?
+                WHERE id = ?''',
+            (new_author_id, new_author_name, new_auth_country, old_author_id)
+        )
 
-    # Print the database in rows after updating
-    for row in cursor.execute(
-        '''SELECT book.id, book.title, book.authorID, book.qty
-            FROM book
-            INNER JOIN author ON book.authorID = author.id
-            WHERE book.id = ?''',
-        (book_id,)
-    ):
-        print(row)
+        # Print the database in rows after updating
+        for row in cursor.execute(
+            '''SELECT book.id, book.title, book.authorID, book.qty
+                FROM book
+                INNER JOIN author ON book.authorID = author.id
+                WHERE book.id = ?''',
+            (book_id,)
+        ):
+            print(row)
 
-    # Commit the changes to the database
-    db.commit()
+        # Commit the changes to the database
+        db.commit()
 
-    return (
-        book_id,
-        new_title,
-        new_author_id,
-        new_qty,
-        new_author_name,
-        new_auth_country
-    )
+        return (
+            book_id,
+            new_title,
+            new_author_id,
+            new_qty,
+            new_author_name,
+            new_auth_country
+        )
+
+
+def find_book(book_id):
+    cursor.execute('''
+                SELECT book.title, author.name, author.country
+                FROM book
+                INNER JOIN author ON book.authorID = author.id
+                WHERE book.id = ?
+            ''', (book_id,))
 
 
 def delete_book():
@@ -266,12 +267,27 @@ def delete_book():
             db.rollback()
             raise e
 
+        old_author_id = book[2]
         # Delete the book from the database
         cursor.execute(
             '''DELETE FROM book WHERE id = ?''',
             (del_book_id,)
         )
+
+        # Delete the author linked to the book deleted from the database
+        cursor.execute(
+            '''SELECT COUNT(*) FROM book WHERE authorID = ?''',
+            (old_author_id,)
+        )
+        count = cursor.fetchone()[0]
+        if count == 0:
+            cursor.execute(
+                '''DELETE FROM author WHERE id = ?''',
+                (old_author_id,)
+            )
+
         print(f"Book with ID {del_book_id} has been deleted.")
+        print(f"Author with ID {old_author_id} has been deleted.")
 
         # Print the database in rows after deletion
         for row in cursor.execute('SELECT * FROM book'):
